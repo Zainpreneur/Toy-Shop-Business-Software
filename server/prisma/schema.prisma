@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite has no native enum support in Prisma, so role/status/type fields
+// are plain Strings, validated against a fixed set of values at the API
+// layer (see src/routes/*.ts) instead of at the database layer.
+// Role: ADMIN | MANAGER | STAFF
+// OrderStatus: PENDING | PAID | REFUNDED | CANCELLED
+// PaymentMethod: CASH | CARD | ONLINE | OTHER
+// StockMovementType: RESTOCK | SALE | ADJUSTMENT | RETURN
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("STAFF")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  orders       Order[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Supplier {
+  id          Int       @id @default(autoincrement())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  createdAt   DateTime  @default(now())
+  products    Product[]
+}
+
+model Product {
+  id             Int             @id @default(autoincrement())
+  sku            String          @unique
+  name           String
+  description    String?
+  ageRange       String?
+  costPrice      Float           @default(0)
+  price          Float
+  stockQty       Int             @default(0)
+  reorderLevel   Int             @default(5)
+  imageUrl       String?
+  active         Boolean         @default(true)
+  categoryId     Int?
+  category       Category?       @relation(fields: [categoryId], references: [id])
+  supplierId     Int?
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  orderItems     OrderItem[]
+  stockMovements StockMovement[]
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model Order {
+  id            Int         @id @default(autoincrement())
+  orderNumber   String      @unique
+  customerId    Int?
+  customer      Customer?   @relation(fields: [customerId], references: [id])
+  userId        Int?
+  user          User?       @relation(fields: [userId], references: [id])
+  status        String      @default("PENDING")
+  paymentMethod String      @default("CASH")
+  subtotal      Float       @default(0)
+  discount      Float       @default(0)
+  tax           Float       @default(0)
+  total         Float       @default(0)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+  lineTotal Float
+}
+
+model StockMovement {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  type      String
+  quantity  Int
+  note      String?
+  createdAt DateTime @default(now())
+}

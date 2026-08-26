@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.env
+*.log
+.DS_Store
+*.tsbuildinfo
+
+# SQLite database & Prisma migration lock is kept, but local db files are not
+server/prisma/dev.db
+server/prisma/dev.db-journal
